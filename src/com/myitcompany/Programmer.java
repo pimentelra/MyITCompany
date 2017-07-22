@@ -4,10 +4,10 @@
  */
 package com.myitcompany;
 
-import java.util.ArrayList;
-
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import java.util.ArrayList;
 
 public class Programmer implements Employee {
 	private static int numberOfProgrammers;
@@ -111,7 +111,7 @@ public class Programmer implements Employee {
 	}
 
 	@Override
-	public String getfirstName() {
+	public String getFirstName() {
 		return this.firstName;
 	}
 
