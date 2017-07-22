@@ -1,141 +1,118 @@
-/**
- * @author Pimentel
- * @date December 2016
+/*
+  @author Pimentel
+  @date December 2016
  */
 package com.myitcompany;
 
-import java.time.*;
-import java.time.temporal.*;
-import java.util.ArrayList;
-import java.util.Collections;
-
 import org.json.simple.JSONObject;
 
-import static java.time.temporal.TemporalAdjusters.*;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.PriorityQueue;
 
-public class Activity {
-	private String name;
-	private LocalDate startDate;
-	private LocalDate endDate;
+import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
+import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 
-	public Activity(String newName, LocalDate newStartDate, LocalDate newEndDate) {
-		this.name = newName;
-		this.startDate = newStartDate;
-		this.endDate = newEndDate;
-	}
+class Activity {
+    private String name;
+    private LocalDate startDate;
+    private LocalDate endDate;
 
-	public Activity(String newName, int newStartDateYear, int newStartDateMonth, int newStartDateDay, int newEndDateYear, int newEndDateMonth, int newEndDateDay) {
-		this.name = newName;
-		this.startDate = LocalDate.of(newStartDateYear, newStartDateMonth, newStartDateDay);
-		this.endDate = LocalDate.of(newEndDateYear, newEndDateMonth, newEndDateDay);
-	}
+    Activity(String newName, LocalDate newStartDate, LocalDate newEndDate) {
+        this.name = newName;
+        this.startDate = newStartDate;
+        this.endDate = newEndDate;
+    }
 
-	public long getDaysCurrentMonth() {
-		LocalDate today = LocalDate.now();
-		LocalDate firstDayOfTheMonth = today.with(firstDayOfMonth());
+    static Activity readFromFile(JSONObject activityObject) {
+        String endDateString = (String) activityObject.get("endDate");
+        String startDateString = (String) activityObject.get("startDate");
 
-		if((this.startDate.compareTo(today) <= 0)  &&  (this.endDate.compareTo(firstDayOfTheMonth) >= 0)) {
-			ArrayList<Long> overlappedDays = new ArrayList<Long>();
-			long value1 = ChronoUnit.DAYS.between(this.startDate, this.endDate);
-			long value2 = ChronoUnit.DAYS.between(firstDayOfTheMonth, this.endDate);
-			long value3 = ChronoUnit.DAYS.between(this.startDate, today);
-			long value4 = ChronoUnit.DAYS.between(firstDayOfTheMonth, today);
+        LocalDate endDate = LocalDate.parse(endDateString);
+        LocalDate startDate = LocalDate.parse(startDateString);
 
-			overlappedDays.add(value1);
-			overlappedDays.add(value2);
-			overlappedDays.add(value3);
-			overlappedDays.add(value4);
+        String name = (String) activityObject.get("name");
 
-			Collections.sort(overlappedDays);
+        return new Activity(name, startDate, endDate);
+    }
 
-			return overlappedDays.get(0);
-		}
-		return 0;
-	}
+    long getDaysCurrentMonth() {
+        LocalDate today = LocalDate.now();
+        LocalDate firstDayOfTheMonth = today.with(firstDayOfMonth());
 
-	public long getDaysStillInCharge() {
-		LocalDate today = LocalDate.now();
-		LocalDate lastDayOfTheMonth = today.with(lastDayOfMonth());
+        Long overlappedDays = getDaysBetween(today, firstDayOfTheMonth);
+        if (overlappedDays != null) return overlappedDays;
+        return 0;
+    }
 
-		if((this.startDate.compareTo(lastDayOfTheMonth) <= 0)  &&  (this.endDate.compareTo(today) >= 0)) {
-			ArrayList<Long> overlappedDays = new ArrayList<Long>();
-			long value1 = ChronoUnit.DAYS.between(this.startDate, this.endDate);
-			long value2 = ChronoUnit.DAYS.between(today, this.endDate);
-			long value3 = ChronoUnit.DAYS.between(this.startDate, lastDayOfTheMonth);
-			long value4 = ChronoUnit.DAYS.between(today, lastDayOfTheMonth);
+    long getDaysStillInCharge() {
+        LocalDate today = LocalDate.now();
+        LocalDate lastDayOfTheMonth = today.with(lastDayOfMonth());
 
-			overlappedDays.add(value1);
-			overlappedDays.add(value2);
-			overlappedDays.add(value3);
-			overlappedDays.add(value4);
+        Long overlappedDays = getDaysBetween(today, lastDayOfTheMonth);
+        if (overlappedDays != null) return overlappedDays;
+        return 0;
+    }
 
-			Collections.sort(overlappedDays);
+    private Long getDaysBetween(LocalDate firstDate, LocalDate lastDate) {
+        if ((this.startDate.compareTo(lastDate) <= 0) && (this.endDate.compareTo(firstDate) >= 0)) {
+            PriorityQueue<Long> overlappedDays = new PriorityQueue<Long>();
+            overlappedDays.add(ChronoUnit.DAYS.between(this.startDate, this.endDate));
+            overlappedDays.add(ChronoUnit.DAYS.between(firstDate, this.endDate));
+            overlappedDays.add(ChronoUnit.DAYS.between(this.startDate, lastDate));
+            overlappedDays.add(ChronoUnit.DAYS.between(firstDate, lastDate));
 
-			return overlappedDays.get(0);
-		}
-		return 0;
-	}
+            return overlappedDays.peek();
+        }
+        return null;
+    }
 
-	public long getTotalDays() {
-		return ChronoUnit.DAYS.between(this.startDate, this.endDate);
-	}
+    long getTotalDays() {
+        return ChronoUnit.DAYS.between(this.startDate, this.endDate);
+    }
 
-	public void update() {
-		setEndDate(getEndDate().plusDays(1));
-	}
+    void update() {
+        setEndDate(getEndDate().plusDays(1));
+    }
 
-	public boolean inCurrentMonth() {
-		LocalDate today = LocalDate.now();
-		LocalDate firstDayOfTheCurrentMonth = today.with(firstDayOfMonth());
+    boolean inCurrentMonth() {
+        LocalDate today = LocalDate.now();
+        LocalDate firstDayOfTheCurrentMonth = today.with(firstDayOfMonth());
 
-		if((this.startDate.compareTo(today) <= 0)  &&  (this.endDate.compareTo(firstDayOfTheCurrentMonth) >= 0)) {
-			return true;
-		} else {
-			return false;
-		}
-	}
+        return (this.startDate.compareTo(today) <= 0) && (this.endDate.compareTo(firstDayOfTheCurrentMonth) >= 0);
+    }
 
-	@SuppressWarnings("unchecked")
-	public JSONObject createJSON() {
-		JSONObject activityObject = new JSONObject();
-		activityObject.put("name", this.name);
-		activityObject.put("startDate", this.startDate.toString());
-		activityObject.put("endDate", this.endDate.toString());
+    @SuppressWarnings("unchecked")
+    JSONObject createJSON() {
+        JSONObject activityObject = new JSONObject();
+        activityObject.put("name", this.name);
+        activityObject.put("startDate", this.startDate.toString());
+        activityObject.put("endDate", this.endDate.toString());
 
-		return activityObject;
-	}
+        return activityObject;
+    }
 
-	public String getName() {
-		return name;
-	}
-	public void setName(String newName) {
-		this.name = newName;
-	}
-	public LocalDate getStartDate() {
-		return startDate;
-	}
-	public void setStartDate(LocalDate newStartDate) {
-		this.startDate = newStartDate;	
-	}
+    String getName() {
+        return name;
+    }
 
-	public LocalDate getEndDate() {
-		return endDate;
-	}
-	public void setEndDate(LocalDate newEndDate) {
-		this.endDate = newEndDate;
-	}
+    void setName(String newName) {
+        this.name = newName;
+    }
 
-	public static Activity readFromFile(JSONObject activityObject) {
-		String endDateString = (String) activityObject.get("endDate");
-		String startDateString = (String) activityObject.get("startDate");
+    LocalDate getStartDate() {
+        return startDate;
+    }
 
-		LocalDate endDate = LocalDate.parse(endDateString);
-		LocalDate startDate = LocalDate.parse(startDateString);
+    void setStartDate(LocalDate newStartDate) {
+        this.startDate = newStartDate;
+    }
 
-		String name = (String) activityObject.get("name");
+    LocalDate getEndDate() {
+        return endDate;
+    }
 
-		Activity activity = new Activity(name, startDate, endDate);
-
-		return activity;
-	}
+    void setEndDate(LocalDate newEndDate) {
+        this.endDate = newEndDate;
+    }
 }
