@@ -1,6 +1,6 @@
-/**
- * @author Pimentel
- * @date December 2016
+/*
+  @author Pimentel
+  @date December 2016
  */
 package com.myitcompany;
 
@@ -8,118 +8,110 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Programmer implements Employee {
-	private static int numberOfProgrammers;
-	private String lastName;
-	private String firstName;
-	private ArrayList<Activity> assignedActivities = new ArrayList<Activity>();
+    private static int numberOfProgrammers;
+    private String lastName;
+    private String firstName;
+    private ArrayList<Activity> assignedActivities = new ArrayList<Activity>();
 
-	public Programmer(String newLastName, String newFirstName) {
-		this.lastName = newLastName;
-		this.firstName = newFirstName;
-		Programmer.numberOfProgrammers++;
-	}
+    Programmer(String newLastName, String newFirstName) {
+        this.lastName = newLastName;
+        this.firstName = newFirstName;
+        Programmer.numberOfProgrammers++;
+    }
 
-	public void printToConsole(int salary) {
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			System.out.println(this.lastName + ", " + this.firstName + ", in charge of \"" + assignedActivities.get(i).getName() + 
-					"\" from " + assignedActivities.get(i).getStartDate() + " to " + assignedActivities.get(i).getEndDate() +
-					" (duration " + assignedActivities.get(i).getTotalDays() + " days), this month: " +
-					assignedActivities.get(i).getDaysCurrentMonth() + " days (total cost = " +
-					(salary * assignedActivities.get(i).getTotalDays()) + " Euros)");
-		}
-	}
+    static Programmer readFromFile(JSONObject programmerObject) {
+        String lastName = (String) programmerObject.get("lastName");
+        String firstName = (String) programmerObject.get("firstName");
+        JSONArray activitiesArray = (JSONArray) programmerObject.get("activities");
 
-	public long getDaysCurrentMonth() {
-		long daysCurrentMonth = 0;
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			daysCurrentMonth += assignedActivities.get(i).getDaysCurrentMonth();
-		}
-		return daysCurrentMonth;
-	}
+        Programmer programmer = new Programmer(lastName, firstName);
 
-	public long getDaysStillInCharge() {
-		long daysStillInCharge = 0;
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			daysStillInCharge += assignedActivities.get(i).getDaysStillInCharge();
-		}
-		return daysStillInCharge;
-	}
+        IntStream.range(0, activitiesArray.size())
+                .mapToObj(i -> (JSONObject) activitiesArray.get(i))
+                .map(Activity::readFromFile)
+                .forEach(programmer::assignActivity);
+        return programmer;
+    }
 
-	public long getTotalDays() {
-		long totalDays = 0;
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			totalDays += assignedActivities.get(i).getTotalDays();
-		}
-		return totalDays;
-	}
+    static int getNumberOfProgrammers() {
+        return numberOfProgrammers;
+    }
 
-	public void update() {
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			assignedActivities.get(i).update();
-		}
-	}
+    void printToConsole(int salary) {
+        IntStream.range(0, assignedActivities.size())
+                .forEach(i -> System.out.printf("%s, %s, in charge of \"%s\" from %s to %s (duration %d days), this month: %d days (total cost = %d Euros)%n",
+                        this.lastName,
+                        this.firstName,
+                        assignedActivities.get(i).getName(),
+                        assignedActivities.get(i).getStartDate(),
+                        assignedActivities.get(i).getEndDate(),
+                        assignedActivities.get(i).getTotalDays(),
+                        assignedActivities.get(i).getDaysCurrentMonth(),
+                        salary * assignedActivities.get(i).getTotalDays()));
+    }
 
-	public boolean workedCurrentMonth() {
-		boolean workedCurrentMonth = false;
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			if(assignedActivities.get(i).inCurrentMonth()) {
-				workedCurrentMonth = true;
-				break;
-			}
-		}
-		return workedCurrentMonth;
-	}
+    long getDaysCurrentMonth() {
+        return assignedActivities
+                .stream()
+                .mapToLong(Activity::getDaysCurrentMonth)
+                .sum();
+    }
 
-	@SuppressWarnings("unchecked")
-	public JSONObject createJSON() {
-		JSONObject programmerObject = new JSONObject();
-		programmerObject.put("lastName", this.lastName);
-		programmerObject.put("firstName", this.firstName);
-		JSONArray activitiesArray = new JSONArray();
-		for(int i = 0; i < assignedActivities.size(); i++) {
-			JSONObject activityObject = assignedActivities.get(i).createJSON();
-			activitiesArray.add(activityObject);
-		}
-		programmerObject.put("activities", activitiesArray);
-		return programmerObject;
-	}
+    long getDaysStillInCharge() {
+        return assignedActivities
+                .stream()
+                .mapToLong(Activity::getDaysStillInCharge)
+                .sum();
+    }
 
-	public static Programmer readFromFile(JSONObject programmerObject) {
-		String lastName = (String) programmerObject.get("lastName");
-		String firstName = (String) programmerObject.get("firstName");
-		JSONArray activitiesArray = (JSONArray) programmerObject.get("activities");
+    long getTotalDays() {
+        return assignedActivities
+                .stream()
+                .mapToLong(Activity::getTotalDays)
+                .sum();
+    }
 
-		Programmer programmer = new Programmer(lastName, firstName);
+    void update() {
+        IntStream.range(0, assignedActivities.size())
+                .forEach(i -> assignedActivities.get(i).update());
+    }
 
-		for(int i = 0; i < activitiesArray.size(); i++) {
-			JSONObject activityObject = (JSONObject) activitiesArray.get(i);
-			Activity activity = Activity.readFromFile(activityObject);
-			programmer.assignActivity(activity);
-		}
-		return programmer;
-	}
+    boolean workedCurrentMonth() {
+        return IntStream.range(0, assignedActivities.size())
+                .anyMatch(i -> assignedActivities.get(i).inCurrentMonth());
+    }
 
-	public static int getNumberOfProgrammers() {
-		return numberOfProgrammers;
-	}
+    @SuppressWarnings("unchecked")
+    JSONObject createJSON() {
+        JSONObject programmerObject = new JSONObject();
+        programmerObject.put("lastName", this.lastName);
+        programmerObject.put("firstName", this.firstName);
+        JSONArray activitiesArray = assignedActivities.stream()
+                .map(Activity::createJSON)
+                .collect(Collectors.toCollection(JSONArray::new));
+        programmerObject.put("activities", activitiesArray);
+        return programmerObject;
+    }
 
-	@Override
-	public String getLastName() {
-		return this.lastName;
-	}
+    @Override
+    public String getLastName() {
+        return this.lastName;
+    }
 
-	@Override
-	public String getFirstName() {
-		return this.firstName;
-	}
+    @Override
+    public String getFirstName() {
+        return this.firstName;
+    }
 
-	public ArrayList<Activity> getAssignedActivities() {
-		return assignedActivities;
-	}
+    ArrayList<Activity> getAssignedActivities() {
+        return assignedActivities;
+    }
 
-	public void assignActivity(Activity newActivity) {
-		assignedActivities.add(newActivity);
-	}
+    void assignActivity(Activity newActivity) {
+        assignedActivities.add(newActivity);
+    }
 }
