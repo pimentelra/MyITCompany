@@ -1,7 +1,7 @@
 /*
-  @author Pimentel
-  @date December 2016
+ * Copyright (c) 2017. Raul Pimentel.
  */
+
 package com.myitcompany;
 
 interface Employee {

@@ -1,7 +1,7 @@
 /*
-  @author Pimentel
-  @date December 2016
+ * Copyright (c) 2017. Raul Pimentel.
  */
+
 package com.myitcompany;
 
 import org.json.simple.JSONObject;
@@ -112,7 +112,7 @@ class Activity {
         return endDate;
     }
 
-    void setEndDate(LocalDate newEndDate) {
+    private void setEndDate(LocalDate newEndDate) {
         this.endDate = newEndDate;
     }
 }
