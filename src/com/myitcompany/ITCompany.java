@@ -13,7 +13,7 @@ public class ITCompany {
 		company.printToConsole();
 		company.update();
 		
-		//generate more data
+		//uncomment the next line to generate more data
 		//company.generateData();
 		
 		company.printToConsole();
